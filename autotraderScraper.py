@@ -1,5 +1,4 @@
 import json
-from tkinter.font import names
 from bs4 import BeautifulSoup
 import requests
 from bs4 import BeautifulSoup
