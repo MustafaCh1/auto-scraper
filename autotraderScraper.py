@@ -1,4 +1,5 @@
 import json
+from turtle import st
 from bs4 import BeautifulSoup
 import requests
 from bs4 import BeautifulSoup
@@ -19,122 +20,32 @@ import base64
 from sentence_transformers import SentenceTransformer, util
 from rapidfuzz import fuzz, process
 from nltk import ngrams
-
-# url = "https://www.autotrader.co.uk/search-form?postcode=rm94xu"
-# chrome_options = Options()
-# chrome_options.headless = True  
-# driver = webdriver.Chrome(options=chrome_options)
-# driver.get(url)
-# driver.implicitly_wait(5) 
-# iframe = WebDriverWait(driver, 50).until(
-#     EC.presence_of_element_located((By.ID, "sp_message_iframe_1086457"))
-#     # sp messages swaps between 1086457 and 1086458
-# )
-# driver.switch_to.frame(iframe)
-
-# driver.execute_script("""
-# var overlay = document.querySelector('.message-overlay');
-# if (overlay) { overlay.remove(); }
-# """)
-
-
-# reject_button = WebDriverWait(driver, 10).until(
-#     EC.element_to_be_clickable(
-#         (By.CSS_SELECTOR, ".message-component.message-button.no-children.focusable.sp_choice_type_13")
-#     )
-# )
-# reject_button.click()
-
-# driver.switch_to.default_content()
-
-# print("✅ Cookies rejected successfully.")
-
-# driver.implicitly_wait(5)
-
-# make_model_button = WebDriverWait(driver, 10).until(
-#     EC.element_to_be_clickable(
-#         (By.XPATH, "//*[@id='make_and_model']/button"))
-# )
-# make_model_button.click()
-
-# driver.implicitly_wait(5)
-# car_makes = driver.find_elements(By.XPATH, "//*[@id='make']/option")
-
-# makes = []
-# makes_models = []
-
-# for make in car_makes:
-#     makes.append(make.get_attribute("value"))
-
-
-
-# soup = BeautifulSoup(driver.page_source, 'html.parser')
-
-# # get makes and models
-
-# for i in range(len(makes)):
-#     if makes[i] == "Any":
-#         continue
-#     else:
-#         car_url = f"https://www.autotrader.co.uk/search-form?make={makes[i]}&postcode=rm94xu&sort=relevance"
-#     driver.get(car_url)
-#     driver.implicitly_wait(5)
-
-#     make_model_button = WebDriverWait(driver, 10).until(
-#         EC.element_to_be_clickable(
-#             (By.XPATH, "//*[@id='make_and_model']/button"))
-#     )
-#     make_model_button.click()
-#     models = driver.find_elements(By.XPATH, "//*[@id='model']/option")
-#     for model in models:
-#         makes_models.append((makes[i], model.get_attribute("value")))
-
-
-# # get makes and models and variants
-
-# limit = 0
-
-# makes_models_variants = []
-
-# # for make, model in makes_models:
-# #     try: 
-# #         car_url = f"https://www.autotrader.co.uk/search-form?make={make}&model={model}&postcode=rm94xu&sort=relevance"
-# #         driver.get(car_url)
-# #         driver.implicitly_wait(5)
-# #         make_model_button = WebDriverWait(driver, 10).until(
-# #             EC.element_to_be_clickable(
-# #                 (By.XPATH, "//*[@id='make_and_model']/button"))
-# #         )
-# #         make_model_button.click()
-# #         variants = driver.find_elements(By.XPATH, "//*[@id='aggregated_trim']/option")
-# #         for variant in variants:
-# #             makes_models_variants.append((make, model, variant.get_attribute("value")))
-# #     except: 
-# #         print(f"Error with make: {make}, model: {model}")
-
-
-# # for make, model, variant in makes_models_variants:
-# #     print(f"Make: {make}, Model: {model}, Variant: {variant}")
-
-# # create csv of make, model, variant
-
-# cars_df = pd.DataFrame(makes_models, columns=["Make", "Model"])
-# cars_df.to_csv("cars.csv", index=False)
-
-# the number on the cars href can be extracted to query the api directly 
+from google.oauth2 import service_account
 
 class auto_assistant():
-    def __init__(self):
+    def __init__(self, streamCreds=None):
         self.full_input = ""
         self.contents = []
         self.final_output = ""
+        self.streamCreds = streamCreds
 
+    def gen_credentials(self):
+        if not self.streamCreds:
+            self.creds = service_account.Credentials.from_service_account_file("autocred.json",
+                                                                           scopes= ['https://www.googleapis.com/auth/cloud-platform'])
+        else:
+            self.creds = service_account.Credentials.from_service_account_info(
+                self.streamCreds,
+                scopes=['https://www.googleapis.com/auth/cloud-platform']
+            )
 
     def generate(self, user_input):
+        self.gen_credentials()
         client = genai.Client(
             vertexai=True,
-            project="gcptutorial-468212",
-            location="global"
+            project='gcptutorial-468212',
+            location='global',
+            credentials=self.creds
         )
         response = ''
         si_text1 = """You are a middle man between a user and a car dealership site. 
@@ -798,9 +709,9 @@ test_data2 = {
 
 if __name__ == '__main__':
 
-    # assist = auto_assistant()
-    # data = assist.conversation()
-    # data = assist.clean_output()
+    assist = auto_assistant()
+    data = assist.conversation()
+    data = assist.clean_output()
     auto_scraper = auto_scrape("https://www.autotrader.co.uk", "rm94xu")
     auto_scraper.find_matches(test_data)
     # auto_scraper.scrape_listings_page(1, auto_scraper.create_search_form(test_data2))

@@ -5,7 +5,7 @@ from google import genai
 from google.genai import types
 
 
-assistant = auto_assistant()
+assistant = auto_assistant(streamCreds=st.secrets.gcp_service_account)
 # auto = auto_scrape("https://www.autotrader.co.uk", "rm94xu")
 
 if "messages" not in st.session_state:
