@@ -1,5 +1,4 @@
 import json
-from turtle import st
 from bs4 import BeautifulSoup
 import numpy as np
 import requests
