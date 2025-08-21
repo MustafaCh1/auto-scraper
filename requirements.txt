@@ -133,7 +133,7 @@ widgetsnbextension==4.0.5
 xxhash==3.2.0
 yarl==1.8.2
 yt-dlp==2025.2.19
-sklearn==1.5.1
+sklearn
 streamlit
 requests
 beautifulsoup4
