@@ -141,3 +141,4 @@ sentence-transformers
 google-generativeai
 sqlalchemy
 sympy
+setuptools
