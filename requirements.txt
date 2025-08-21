@@ -142,3 +142,4 @@ google-generativeai
 sqlalchemy
 sympy
 setuptools
+rapidfuzz
