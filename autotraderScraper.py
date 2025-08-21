@@ -1,5 +1,7 @@
 import json
+from turtle import st
 from bs4 import BeautifulSoup
+import numpy as np
 import requests
 from bs4 import BeautifulSoup
 import time
@@ -55,7 +57,7 @@ class auto_assistant():
         You have two options, either ask questions or return the final query but you cannot do both. 
         You must always use the chat history to inform your decision. 
         At each stage you must also tell the customer what information you already have. 
-        You at a minimum must know 6 fields about the vehicle the customer wants. 
+        You at a minimum must know 8 fields about the vehicle the customer wants. 
         After asking questions you must return a final JSON structured output that 
         gives the summarised information. Where information it can be included in the features column. 
         Do not make any assumptions on fields that have not been provided. 
@@ -66,6 +68,7 @@ class auto_assistant():
         Where you lack the ability to fill fields you can just ignore them, just fill the fields that can be filled. 
         You do not ask more than 3 questions and you must return the structured JSON at the end. 
         When you return the final structured query you will start the result with \"Query:\"
+        Always consult the query json to remember the structure and possible values.
 
         each field and what it means is specified:
         make: The manufacturer or brand of the car (e.g., Toyota, BMW, Ford).
@@ -95,7 +98,7 @@ class auto_assistant():
         transmission: The type of gearbox the car has (e.g., Automatic, Manual).
         year-from: The earliest year of manufacture to include.
         year-to: The latest year of manufacture to include.
-        zero-to-60: The acceleration bracket from 0 to 60 mph (in seconds)."""
+        zero-to-60: The acceleration bracket from 0 to 60 mph (in seconds). """
 
         model = "gemini-2.5-flash"
         contents = [
@@ -198,17 +201,22 @@ class auto_scrape:
     def __init__(self, base_url, postcode):
         self.base_url = base_url
         self.postcode = postcode
-        chrome_options = Options()
-        chrome_options.headless = True
-        self.driver = webdriver.Chrome(options=chrome_options)
+        #self.chrome_options = Options()
+        self.chrome_options.headless = True
+        self.chrome_options.add_argument("--headless=new")
+        self.driver = None
         self.car_links = []
         self.cookies_rejected = False
+        self.carIDs = []
         self.low_priority_params = [
             "colour", 
             "drivetrain", 
             "fuel-consumption",
             "fuel-type", 
-            "variant"
+            "variant", 
+            'insuranceGroup', 
+            'model', 
+            'transmission'
         ]
         self.params = [
             "make",
@@ -251,6 +259,9 @@ class auto_scrape:
             "maximum-mileage",
             "price-to",
         ]
+    
+    def start(self):
+        self.driver = webdriver.Chrome(options=self.chrome_options)
 
     def close(self):
         self.driver.quit()
@@ -258,7 +269,6 @@ class auto_scrape:
     def scrape_listings_page(self, page, url):
         url = url + f"&page={page}"
         self.driver.get(url)
-        print("Navigating to:", url)
         if not self.cookies_rejected:
             self.reject_cookies()
             self.cookies_rejected = True
@@ -269,13 +279,21 @@ class auto_scrape:
         if not listings:
             return False
         for listing in listings: 
-            self.car_links.append(listing.find("a")["href"])
+            car_link = listing.find("a")["href"]
+            match = re.search(r'car-details/(\d+)', car_link)
+            if match:
+                carID = match.group(1)
+                if carID not in self.carIDs:
+                    self.carIDs.append(carID)
+                    self.car_links.append(car_link)
+                else:
+                    print(f"Car ID {carID} already processed.")
+                    return
         return True
     
     def scrape_car_page(self, url):
         match = re.search(r'car-details/(\d+)', url)
         if match:
-            print(match.group(1))
             carID = match.group(1)
         else:
             print("Car ID not found in URL.")
@@ -340,14 +358,16 @@ class auto_scrape:
                         query3_params += f"&{k}={v}"
 
         main_url = "https://www.autotrader.co.uk/car-search?postcode=" + self.postcode + query1_params
-        alt_url = "https://www.autotrader.co.uk/car-search?postcode=" + self.postcode + query2_params 
+        alt_url = "https://www.autotrader.co.uk/car-search?postcode=" + self.postcode + query2_params
         alt_url2 = "https://www.autotrader.co.uk/car-search?postcode=" + self.postcode + query3_params
+
 
         return main_url, alt_url, alt_url2
 
 
 
     def similarity_score(self, car, query):
+        features_found = []
         if "features" in query.keys():
             match_conditions = len(query) - 1 + len(query["features"])
         else:
@@ -427,9 +447,12 @@ class auto_scrape:
             groupMet = True
             ing = next((item['value'] for item in car['runningCostsV2']['items'] if item['label'] == 'Insurance group'), None)
             for group in query['insuranceGroup']:
-                if ing[:-1] >= group[:-1]:
-                    groupMet = False
+                if ing:
+                    if ing[:-1] >= group[:-1]:
+                        groupMet = False
                     break
+                else: 
+                    groupMet = False
             if groupMet:
                 met_conditions += 1
         if 'quantity-of-doors' in query.keys():
@@ -437,6 +460,8 @@ class auto_scrape:
                 (item["value"] for item in car["keySpecification"] if item["label"] == "Doors"),
                 None
             )
+            if isinstance(query['quantity-of-doors'], str):
+                query['quantity-of-doors'] = [query['quantity-of-doors']]
             if doors in query['quantity-of-doors']:
                 met_conditions += 1
         if 'seats_values' in query.keys():
@@ -521,6 +546,7 @@ class auto_scrape:
             maxi= query.get('year-to', None)
             mini= int(mini) if mini else None
             maxi= int(maxi) if maxi else None
+            year = 2025
             keys = car['keySpecification']
             for item in keys:
                 if item['label'] == 'Registration':
@@ -577,17 +603,27 @@ class auto_scrape:
             for feat in query_feat.keys():
                 for category in car_feat:
                     for item in category['items']:
-                        if fuzz.partial_ratio(item['name'].lower(), feat.lower()) > 80:
+                        if fuzz.partial_ratio(item['name'].lower(), feat.lower()) > 75:
                             scores = self.ngram_match_score(feat, item['name'])
-                            weighted_score = (sum(scores['1-gram']) * 1.2 + sum(scores['2-gram']) * 0.8) / (len(scores["1-gram"]) + len(scores["2-gram"]))
-                            query_feat[feat] = max(query_feat[feat], weighted_score)
-                            break
+                            variance = 0
+                            for n in scores.keys():
+                                variance += np.var(scores[n])
+                            variance = variance / len(scores.keys())
+                            if variance < 30:
+                                if len(scores['1-gram']) == 0 and len(scores['2-gram']) == 0:
+                                    weighted_score = 0
+                                else:
+                                    weighted_score = (sum(scores['1-gram']) + sum(scores['2-gram'])) / (len(scores["1-gram"]) + len(scores["2-gram"]))
+                                query_feat[feat] = max(query_feat[feat], weighted_score)
+                                break
             
-            features_found = []
             for feat, score in query_feat.items():
                 if score > 80:
                     features_found.append(feat)
                     met_conditions += 1
+                elif score > 60:
+                    features_found.append(f"partial: {feat}")
+                    met_conditions += 0.6 * score / 100
         
         final_score = met_conditions / match_conditions if match_conditions > 0 else 0
 
@@ -624,31 +660,34 @@ class auto_scrape:
         # This function will find matches for the given query
         matchlist = []
         main_url, alt_url, alt_url2 = self.create_search_form(query)
-        page = 0
+        page = 1
         while True:
             scraping = self.scrape_listings_page(page, main_url)
             page += 1
-            if not scraping or page > 20:
-                page = 0
+            if not scraping or page > 10:
+                page = 1
                 break
         while True:
             scraping = self.scrape_listings_page(page, alt_url)
-            if not scraping or page > 20:
+            if not scraping or page > 5:
+                page = 1
                 break
             page += 1
         while True:
             scraping = self.scrape_listings_page(page, alt_url2)
-            if not scraping or page > 20:
+            if not scraping or page > 5:
+                page = 1
                 break
             page += 1
+        
+        self.car_links = list(set(self.car_links))
 
         for link in self.car_links:
             car = self.scrape_car_page(link)
             match_score, found_features = self.similarity_score(car, query)
-            matchlist.append((link, match_score, found_features))
+            matchlist.append((link, match_score, found_features, car))
 
         matchlist = sorted(matchlist, key=lambda x: x[1], reverse=True)
-        print(matchlist[0:5])  # Print top 10 matches
         return matchlist
 
 # auto_assist = auto_assistant()
@@ -708,10 +747,11 @@ test_data2 = {
 
 if __name__ == '__main__':
 
-    assist = auto_assistant()
-    data = assist.conversation()
-    data = assist.clean_output()
+    # assist = auto_assistant()
+    # data = assist.conversation()
+    # data = assist.clean_output()
     auto_scraper = auto_scrape("https://www.autotrader.co.uk", "rm94xu")
+    auto_scraper.start()
     auto_scraper.find_matches(test_data)
     # auto_scraper.scrape_listings_page(1, auto_scraper.create_search_form(test_data2))
     # car = auto_scraper.scrape_car_page(auto_scraper.car_links[0])
@@ -724,3 +764,4 @@ if __name__ == '__main__':
     # auto_scraper.scrape_listings_page(2, "https://www.autotrader.co.uk/car-search?make=BMW&model=M8&postcode=rm9+4xu&sort=relevance")
     # auto_scraper.scrape_car_page("https://www.autotrader.co.uk/car-details/202507254830859?journey=FEATURED_LISTING_JOURNEY&sort=relevance&searchId=43ae15a9-e5b6-48e0-bfe8-5f14f74b8c20&postcode=rm94xu&advertising-location=at_cars&fromsra")
     auto_scraper.close()
+
