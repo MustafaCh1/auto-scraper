@@ -2,8 +2,8 @@ from autotraderScraper import auto_assistant
 from autotraderScraper import auto_scrape
 import streamlit as st
 import json
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+from google.generativeai import types
 from price_predictor import price_predict
 import price_predictor
 
