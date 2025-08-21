@@ -2,7 +2,9 @@ from autotraderScraper import auto_scrape
 import pandas as pd
 import pickle  
 import gzip
-import sklearn
+
+
+
 
 
 class price_predict:
