@@ -17,8 +17,8 @@ if "assistant" not in st.session_state:
 if "scraper" not in st.session_state:
     st.session_state.scraper = auto_scrape("https://www.autotrader.co.uk", "rm94xu")
 
-if "price_predict" not in st.session_state:
-    st.session_state.price_predict = price_predict()
+# if "price_predict" not in st.session_state:
+#     st.session_state.price_predict = price_predict()
 
 if "go" not in st.session_state:
     st.session_state.go = True
@@ -114,7 +114,7 @@ if prompt:
         for link, score, features, carData in results[:10]:
             score = round(score, 2)
             carPricePred = st.session_state.price_predict.predict(carData)
-            priceb = price_bracket(carPricePred, int(carData['heading']['priceBreakdown']['price']['price']))
+            # priceb = price_bracket(carPricePred, int(carData['heading']['priceBreakdown']['price']['price']))
             gallery = carData['gallery']['images'] if 'gallery' in carData else []
             first_img = gallery[0]['url'] if gallery else None
             price = "£" + str(carData['heading']['priceBreakdown']['price']['price'])
@@ -134,7 +134,6 @@ if prompt:
                         {f'<img src="{first_img}" style="width:100%;border-radius:8px;margin:8px 0;">' if first_img else ''}
                         <p><b>Insurance Group:</b>{ing}</p>
                         <p><b>Match Score:</b>{score * 100}%</p>
-                        <p><b>Car is: {priceb}</b>
                         <a href="{base_url}{link}" target="_blank">View Listing</a>
                     </div>
                     """,
