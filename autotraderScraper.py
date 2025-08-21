@@ -200,8 +200,8 @@ class auto_scrape:
     def __init__(self, base_url, postcode):
         self.base_url = base_url
         self.postcode = postcode
-        #self.chrome_options = Options()
-        self.chrome_options.headless = True
+        self.chrome_options = Options()
+        #self.chrome_options.headless = True
         self.chrome_options.add_argument("--headless=new")
         self.driver = None
         self.car_links = []
