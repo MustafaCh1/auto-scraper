@@ -201,8 +201,8 @@ class auto_scrape:
         self.base_url = base_url
         self.postcode = postcode
         self.chrome_options = Options()
-        self.chrome_options.headless = True
-        #self.chrome_options.add_argument("--headless=new")
+        #self.chrome_options.headless = True
+        self.chrome_options.add_argument("--headless=new")
         self.driver = None
         self.car_links = []
         self.cookies_rejected = False
