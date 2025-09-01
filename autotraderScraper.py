@@ -317,7 +317,7 @@ class auto_scrape:
     def reject_cookies(self):
         try:
             iframe = WebDriverWait(self.driver, 50).until(
-                EC.presence_of_element_located((By.ID, "sp_message_iframe_1086457"))
+                EC.presence_of_element_located((By.ID, "sp_message_iframe_1086458"))
             )
             self.driver.switch_to.frame(iframe)
             reject_button = WebDriverWait(self.driver, 10).until(
