@@ -202,9 +202,14 @@ class auto_scrape:
         self.base_url = base_url
         self.postcode = postcode
         self.chrome_options = Options()
-        self.chrome_options.headless = True
+        #self.chrome_options.headless = True
         self.service = Service("/usr/bin/chromedriver")
-        #self.chrome_options.add_argument("--headless=new")
+        self.chrome_options.add_argument("--headless=new") 
+        self.chrome_options.add_argument("--no-sandbox")   
+        self.chrome_options.add_argument("--disable-dev-shm-usage")
+        self.chrome_options.add_argument("--disable-gpu")  
+        self.chrome_options.add_argument("--remote-debugging-port=9222") 
+
         self.driver = None
         self.car_links = []
         self.cookies_rejected = False
