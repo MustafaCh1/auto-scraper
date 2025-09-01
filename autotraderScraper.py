@@ -204,7 +204,7 @@ class auto_scrape:
         self.chrome_options = Options()
         #self.chrome_options.headless = True
         self.service = Service("/usr/bin/chromedriver")
-        self.chrome_options.add_argument("--headless=new") 
+        #self.chrome_options.add_argument("--headless=new") 
         self.chrome_options.add_argument("--no-sandbox")   
         self.chrome_options.add_argument("--disable-dev-shm-usage")
         self.chrome_options.add_argument("--disable-gpu")  
