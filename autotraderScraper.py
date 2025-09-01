@@ -202,6 +202,7 @@ class auto_scrape:
         self.postcode = postcode
         self.chrome_options = Options()
         self.chrome_options.headless = True
+        self.service = Service("/usr/bin/chromedriver")
         #self.chrome_options.add_argument("--headless=new")
         self.driver = None
         self.car_links = []
@@ -260,7 +261,7 @@ class auto_scrape:
         ]
     
     def start(self):
-        self.driver = webdriver.Chrome(options=self.chrome_options)
+        self.driver = webdriver.Chrome(service=self.service, options=self.chrome_options)
 
     def close(self):
         self.driver.quit()
