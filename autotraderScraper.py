@@ -323,7 +323,7 @@ class auto_scrape:
                     )
                 )
                 print("🔎 Switched into cookie iframe.")
-            except TimeoutException:
+            except:
                 print("ℹ️ No iframe detected, continuing on main page.")
             #self.driver.switch_to.frame(iframe)
             
