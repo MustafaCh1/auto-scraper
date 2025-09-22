@@ -1,2 +1,7 @@
-# auto-scraper
-communicate with autotrader using natural language to find the best matches for a car you want
+# AutoScraper
+Communicate with autotrader using natural language to find the best matches for a car you want
+Current streamlit application shown in demo is not live. Command line system can be used by downloading scripts.
+
+## Video Demo 
+<video src="" controls="controls" style="max-width: 730px;">
+</video>
